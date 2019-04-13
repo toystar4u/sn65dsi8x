@@ -5,7 +5,9 @@
 #include <linux/gpio/consumer.h>
 #include <video/videomode.h>
 
+#define DEBUG               // enable _dbg()
 #define TOY_MODIFICATION   1
+#define TOY_TEST
 
 struct sn65dsi83_brg;
 struct sn65dsi83_brg_funcs {
@@ -33,8 +35,6 @@ struct sn65dsi83_brg {
 
 #ifdef TOY_MODIFICATION
     u8 test_mode;
-    u32 dsi_bpp;            // DSI bpp
-    u32 dsi_packet_type;    // DSI packet type for 18bpp
 #endif
 };
 struct sn65dsi83_brg *sn65dsi83_brg_get(void);

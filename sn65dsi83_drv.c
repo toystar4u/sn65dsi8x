@@ -72,6 +72,12 @@ static int sn65dsi83_connector_get_modes(struct drm_connector *connector)
             dev_dbg(connector->dev->dev, "%s could not interrogate drm_panel for mdoes\n",__func__);
         }
 
+        // get the videomode
+        if(!sn65dsi83->curr_mode)
+            dev_dbg(connector->dev->dev, "%s could not find the current display mode\n",__func__);
+        
+        drm_display_mode_to_videomode(sn65dsi83->curr_mode, sn65dsi83->brg->vm);
+
         return ret;
     }else{
 
@@ -201,6 +207,7 @@ sn65dsi83_connector_mode_valid(struct drm_connector *connector,
 
     dev_info(dev, "%s: mode: %d*%d@%d is valid\n",__func__,
             mode->hdisplay,mode->vdisplay,mode->clock);
+
     return MODE_OK;
 }
 
@@ -272,6 +279,7 @@ static void sn65dsi83_bridge_mode_set(struct drm_bridge *bridge,
     struct sn65dsi83 *sn65dsi83 = bridge_to_sn65dsi83(bridge);
     dev_dbg(DRM_DEVICE(bridge), "%s: mode: %d*%d@%d\n",__func__,
             mode->hdisplay,mode->vdisplay,mode->clock);
+
     drm_mode_copy(&sn65dsi83->curr_mode, adj_mode);
 }
 
@@ -428,9 +436,43 @@ static int sn65dsi83_parse_dt(struct device_node *np,
 #else
 
     // when the video timing is given in DT
+    /*
+        // <min typ max>
+        timing1: timing {
+            // 1920x1080p24 
+            clock-frequency = <148500000>;
+            hactive = <1920>;
+            vactive = <1080>;
+            hsync-len = <0 44 60>;
+            hfront-porch = <80 88 95>;
+            hback-porch = <100 148 160>;
+            vfront-porch = <0 4 6>;
+            vback-porch = <0 36 50>;
+            vsync-len = <0 5 6>;
+        };
+    */
+    /*
+    * Single "mode" entry. This describes one set of signal timings a display can
+    * have in one setting. This struct can later be converted to struct videomode
+    * (see include/video/videomode.h). As each timing_entry can be defined as a
+    * range, one struct display_timing may become multiple struct videomodes.
+    *
+    * Example: hsync active high, vsync active low
+    *
+    *				    Active Video
+    * Video  ______________________XXXXXXXXXXXXXXXXXXXXXX_____________________
+    *       |<- sync ->|<- back ->|<----- active  ----->|<- front ->|<- sync..
+    *       |          |  porch   |                     |   porch   |
+    *
+    * HSync _|¯¯¯¯¯¯¯¯¯¯|___________________________________________|¯¯¯¯¯¯¯¯¯
+    *
+    * VSync ¯|__________|¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|_________
+    */
+
     /* Read default timing if there is not device tree node for */
     if ((of_get_videomode(np, &sn65dsi83->brg->vm, 0)) < 0)
-        videomode_from_timing(&panel_default_timing, &sn65dsi83->brg->vm);
+        videomode_from_timing(&panel_default_timing, &sn65dsi83->brg->vm);      // get typical values
+
 
     of_node_put(endpoint);
     of_node_put(sn65dsi83->host_node);

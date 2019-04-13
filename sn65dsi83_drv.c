@@ -73,10 +73,8 @@ static int sn65dsi83_connector_get_modes(struct drm_connector *connector)
         }
 
         // get the videomode
-        if(!sn65dsi83->curr_mode)
-            dev_dbg(connector->dev->dev, "%s could not find the current display mode\n",__func__);
-        
         drm_display_mode_to_videomode(sn65dsi83->curr_mode, sn65dsi83->brg->vm);
+        dev_dbg(connector->dev->dev, "%s videomode: pixel clk = %d\n",__func__,sn65dsi83->brg->vm->pixelclock );
 
         return ret;
     }else{
@@ -280,7 +278,13 @@ static void sn65dsi83_bridge_mode_set(struct drm_bridge *bridge,
     dev_dbg(DRM_DEVICE(bridge), "%s: mode: %d*%d@%d\n",__func__,
             mode->hdisplay,mode->vdisplay,mode->clock);
 
+    dev_dbg(DRM_DEVICE(bridge), "%s: adj_mode: %d*%d@%d\n",__func__,
+            adj_mode->hdisplay, adj_mode->vdisplay, adj_mode->clock);
+
     drm_mode_copy(&sn65dsi83->curr_mode, adj_mode);
+
+ // drm_display_mode_to_videomode(&sn65dsi83->curr_mode, sn65dsi83->brg->vm);
+   
 }
 
 static int sn65dsi83_bridge_attach(struct drm_bridge *bridge)

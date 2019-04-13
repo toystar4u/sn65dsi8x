@@ -105,7 +105,7 @@ static int sn65dsi83_connector_get_modes(struct drm_connector *connector)
             *bus_flags |= DRM_BUS_FLAG_PIXDATA_POSEDGE;
 
 
-    #if TOY_MODIFICATION
+    #ifdef TOY_MODIFICATION
         if(brg->bpp == 18)
             bus_format = MEDIA_BUS_FMT_RGB666_1X7X3_SPWG;
 
@@ -170,7 +170,7 @@ static int sn65dsi83_connector_get_modes(struct drm_connector *connector)
         *bus_flags |= DRM_BUS_FLAG_PIXDATA_POSEDGE;
 
 
-#if TOY_MODIFICATION
+#ifdef TOY_MODIFICATION
     if(brg->bpp == 18)
         bus_format = MEDIA_BUS_FMT_RGB666_1X7X3_SPWG;
 
@@ -494,7 +494,7 @@ static int sn65dsi83_attach_dsi(struct sn65dsi83 *sn65dsi83)
     struct mipi_dsi_host *host;
     struct mipi_dsi_device *dsi;
     int ret = 0;
-    const struct mipi_dsi_device_info info = { .type = "sn65dsi83",
+    const struct mipi_dsi_device_info info = { .type = "sn65dsi8x",
                            .channel = 0,
                            .node = NULL,
                          };

@@ -391,7 +391,7 @@ static int sn65dsi83_brg_configure(struct sn65dsi83_brg *brg)
     SN65DSI83_WRITE(SN65DSI83_CHB_VERT_FRONTPORCH, 0x00);
 
 #ifdef TOY_MODIFICATION
-    // read and print all registers
+    // read and print all registers in debug mode
     sn65dsi83_brg_read_all(brg);
 #endif
 

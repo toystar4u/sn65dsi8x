@@ -41,19 +41,19 @@ Display Timings for Hannstar HSD070pww1
 		display-timings {
 			native-mode = <&lvds_timing0>;
 			lvds_timing0:hsd070pww1 {	
-				clock-frequency = <8500000>;  // 82MHz in product mannual
-        hactive = <1280>;
-        vactive = <800>;
-        hfront-porch = <10>;
-        hback-porch = <10>;
-        hsync-len = <661>;
-        vback-porch = <10>;
-        vfront-porch = <10>;
-        vsync-len = <203>;
-        hsync-active = <0>;
-				vsync-active = <0>;
-				de-active = <1>;
-				pixelclk-active = <0>;
+			clock-frequency = <8500000>;  // 82MHz in product mannual
+			hactive = <1280>;
+			vactive = <800>;
+			hfront-porch = <10>;
+			hback-porch = <10>;
+			hsync-len = <661>;
+			vback-porch = <10>;
+			vfront-porch = <10>;
+			vsync-len = <203>;
+			hsync-active = <0>;
+			vsync-active = <0>;
+			de-active = <1>;
+			pixelclk-active = <0>;
 			};
 
 		};

@@ -1,7 +1,7 @@
 /*
  * Licensed under the GPL-2.
  */
-
+//#define DEBUG
 #include <linux/device.h>
 #include <linux/gpio/consumer.h>
 #include <linux/module.h>
@@ -34,11 +34,6 @@ struct sn65dsi83 {
     struct device_node *host_node;
     struct mipi_dsi_device *dsi;
     struct sn65dsi83_brg *brg;
-
-#ifdef TOY_TEST
-    struct drm_panel *panel;
-#endif
-
 };
 
 static int sn65dsi83_attach_dsi(struct sn65dsi83 *sn65dsi83);
@@ -49,7 +44,6 @@ static struct sn65dsi83 *connector_to_sn65dsi83(struct drm_connector *connector)
     return container_of(connector, struct sn65dsi83, connector);
 }
 
-#ifdef TOY_TEST
 static int sn65dsi83_connector_get_modes(struct drm_connector *connector)
 {
     struct sn65dsi83 *sn65dsi83 = connector_to_sn65dsi83(connector);
@@ -61,92 +55,6 @@ static int sn65dsi83_connector_get_modes(struct drm_connector *connector)
     int ret;
 
     dev_dbg(dev, "%s\n",__func__);
-
-    if(sn65dsi83->panel){
-
-        // get modes, delegated to Panel
-        if(sn65dsi83->panel->funcs && sn65dsi83->panel->funcs->get_modes){
-            ret = sn65dsi83->panel->funcs->get_modes(sn65dsi83->panel);
-            dev_dbg(connector->dev->dev, "%s got %d modes from panel\n",__func__,ret);
-        }else{
-            dev_dbg(connector->dev->dev, "%s could not interrogate drm_panel for mdoes\n",__func__);
-        }
-
-        // get the videomode
-        drm_display_mode_to_videomode(sn65dsi83->curr_mode, sn65dsi83->brg->vm);
-        dev_dbg(connector->dev->dev, "%s videomode: pixel clk = %d\n",__func__,sn65dsi83->brg->vm->pixelclock );
-
-        return ret;
-    }else{
-
-        // When video timing is given in DT,
-        // create video mode and add it to connector
-
-        mode = drm_mode_create(connector->dev);
-        if (!mode) {
-            DRM_DEV_ERROR(dev, "Failed to create display mode!\n");
-            return 0;
-        }
-
-        drm_display_mode_from_videomode(&brg->vm, mode);
-        mode->width_mm = brg->width_mm;
-        mode->height_mm = brg->height_mm;
-        mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
-
-        drm_mode_probed_add(connector, mode);
-        drm_mode_connector_list_update(connector);
-
-        connector->display_info.width_mm = mode->width_mm;
-        connector->display_info.height_mm = mode->height_mm;
-
-        if (brg->vm.flags & DISPLAY_FLAGS_DE_HIGH)
-            *bus_flags |= DRM_BUS_FLAG_DE_HIGH;
-        if (brg->vm.flags & DISPLAY_FLAGS_DE_LOW)
-            *bus_flags |= DRM_BUS_FLAG_DE_LOW;
-        if (brg->vm.flags & DISPLAY_FLAGS_PIXDATA_NEGEDGE)
-            *bus_flags |= DRM_BUS_FLAG_PIXDATA_NEGEDGE;
-        if (brg->vm.flags & DISPLAY_FLAGS_PIXDATA_POSEDGE)
-            *bus_flags |= DRM_BUS_FLAG_PIXDATA_POSEDGE;
-
-
-    #ifdef TOY_MODIFICATION
-        if(brg->bpp == 18)
-            bus_format = MEDIA_BUS_FMT_RGB666_1X7X3_SPWG;
-
-        connector->display_info.bpc = brg->bpp/3;
-        
-        dev_info(dev, "bpc = %d\n",connector->display_info.bpc);
-        dev_info(dev, "bus format = 0x%x\n",bus_format);
-    #endif
-
-        ret = drm_display_info_set_bus_formats(&connector->display_info,
-                            &bus_format, 1);
-        if (ret)
-            return ret;
-           
-    }
-
-    return 1;
-}
-
-#else
-
-static int sn65dsi83_connector_get_modes(struct drm_connector *connector)
-{
-    struct sn65dsi83 *sn65dsi83 = connector_to_sn65dsi83(connector);
-    struct sn65dsi83_brg *brg = sn65dsi83->brg;
-    struct device *dev = connector->dev->dev;
-    struct drm_display_mode *mode;
-    u32 bus_format = MEDIA_BUS_FMT_RGB888_1X24;
-    u32 *bus_flags = &connector->display_info.bus_flags;
-    int ret;
-
-    dev_dbg(dev, "%s\n",__func__);
-
-
-    // When video timing is given in DT,
-    // create video mode and add it to connector
-
     mode = drm_mode_create(connector->dev);
     if (!mode) {
         DRM_DEV_ERROR(dev, "Failed to create display mode!\n");
@@ -174,7 +82,7 @@ static int sn65dsi83_connector_get_modes(struct drm_connector *connector)
         *bus_flags |= DRM_BUS_FLAG_PIXDATA_POSEDGE;
 
 
-#ifdef TOY_MODIFICATION
+#if TOY_MODIFICATION
     if(brg->bpp == 18)
         bus_format = MEDIA_BUS_FMT_RGB666_1X7X3_SPWG;
 
@@ -185,14 +93,12 @@ static int sn65dsi83_connector_get_modes(struct drm_connector *connector)
 #endif
 
     ret = drm_display_info_set_bus_formats(&connector->display_info,
-                        &bus_format, 1);
+                           &bus_format, 1);
     if (ret)
         return ret;
 
     return 1;
 }
-#endif
-
 
 static enum drm_mode_status
 sn65dsi83_connector_mode_valid(struct drm_connector *connector,
@@ -205,7 +111,7 @@ sn65dsi83_connector_mode_valid(struct drm_connector *connector,
 
     dev_info(dev, "%s: mode: %d*%d@%d is valid\n",__func__,
             mode->hdisplay,mode->vdisplay,mode->clock);
-
+            
     return MODE_OK;
 }
 
@@ -252,10 +158,6 @@ static void sn65dsi83_bridge_enable(struct drm_bridge *bridge)
     dev_dbg(DRM_DEVICE(bridge),"%s\n",__func__);
     sn65dsi83->brg->funcs->setup(sn65dsi83->brg);
     sn65dsi83->brg->funcs->start_stream(sn65dsi83->brg);
-
-#ifdef TOY_TEST
-    drm_panel_enable(sn65dsi83->panel);
-#endif
 }
 
 static void sn65dsi83_bridge_disable(struct drm_bridge *bridge)
@@ -264,10 +166,6 @@ static void sn65dsi83_bridge_disable(struct drm_bridge *bridge)
     dev_dbg(DRM_DEVICE(bridge),"%s\n",__func__);
     sn65dsi83->brg->funcs->stop_stream(sn65dsi83->brg);
     sn65dsi83->brg->funcs->power_off(sn65dsi83->brg);
-
- #ifdef TOY_TEST
-    drm_panel_disable(sn65dsi83->panel);
-#endif   
 }
 
 static void sn65dsi83_bridge_mode_set(struct drm_bridge *bridge,
@@ -279,12 +177,9 @@ static void sn65dsi83_bridge_mode_set(struct drm_bridge *bridge,
             mode->hdisplay,mode->vdisplay,mode->clock);
 
     dev_dbg(DRM_DEVICE(bridge), "%s: adj_mode: %d*%d@%d\n",__func__,
-            adj_mode->hdisplay, adj_mode->vdisplay, adj_mode->clock);
+            mode->hdisplay,mode->vdisplay,mode->clock);
 
     drm_mode_copy(&sn65dsi83->curr_mode, adj_mode);
-
- // drm_display_mode_to_videomode(&sn65dsi83->curr_mode, sn65dsi83->brg->vm);
-   
 }
 
 static int sn65dsi83_bridge_attach(struct drm_bridge *bridge)
@@ -312,16 +207,6 @@ static int sn65dsi83_bridge_attach(struct drm_bridge *bridge)
     drm_mode_connector_attach_encoder(&sn65dsi83->connector, bridge->encoder);
 
     ret = sn65dsi83_attach_dsi(sn65dsi83);
-    if (ret) {
-        DRM_ERROR("Failed to attach DSI to host\n");
-        return ret;
-    }
-
-#ifdef TOY_TEST
-    if(sn65dsi83->panel){
-        drm_panel_attach(sn65dsi83->panel, &sn65dsi83->connector);
-    }
-#endif
 
     return ret;
 }
@@ -339,34 +224,11 @@ static int sn65dsi83_parse_dt(struct device_node *np,
     struct device *dev = &sn65dsi83->brg->client->dev;
     u32 num_lanes = 2, bpp = 24, format = 2, width = 149, height = 93;
     struct device_node *endpoint;
-
  #ifdef TOY_MODIFICATION
     u32 test_mode =0;
-    struct device_node *panel_node;
-#endif
+    u32 dsi_clock =0;
+ #endif
 
-
-#ifdef TOY_TEST
-    // port@0 : find the associated DSI host
-    endpoint = of_graph_get_endpoint_by_regs(np, 0, -1);
-    if (!endpoint){
-        dev_err(dev, "%s cannot find endpoint 0 towards DSI host\n",__func__);
-        return -ENODEV;
-    }
-    dev_dbg(dev,"%s DSI-side endpoint: %s\n",__func__,endpoint->full_name);
-
-    sn65dsi83->host_node = of_graph_get_remote_port_parent(endpoint);
-    if (!sn65dsi83->host_node) {
-        of_node_put(endpoint);
-        return -ENODEV;
-    }
-    dev_dbg(dev,"%s DSI host node: %s\n",__func__,sn65dsi83->host_node->full_name);
-
-    of_node_put(endpoint);
-    of_node_put(sn65dsi83->host_node);
-#else
-
-    // when the number of ports is only 1,
     endpoint = of_graph_get_next_endpoint(np, NULL);
     if (!endpoint)
         return -ENODEV;
@@ -376,7 +238,6 @@ static int sn65dsi83_parse_dt(struct device_node *np,
         of_node_put(endpoint);
         return -ENODEV;
     }
-#endif
 
     of_property_read_u32(np, "ti,dsi-lanes", &num_lanes);
     of_property_read_u32(np, "ti,lvds-format", &format);
@@ -385,7 +246,9 @@ static int sn65dsi83_parse_dt(struct device_node *np,
     of_property_read_u32(np, "ti,height-mm", &height);
 
 #ifdef TOY_MODIFICATION
+    of_property_read_u32(np, "ti,dsi-clock", &dsi_clock);
     of_property_read_u32(np, "ti,test-mode", &test_mode);
+    sn65dsi83->brg->dsi_clock = dsi_clock;
     sn65dsi83->brg->test_mode = test_mode == 0 ? 0:1;
 #endif
 
@@ -407,80 +270,12 @@ static int sn65dsi83_parse_dt(struct device_node *np,
     sn65dsi83->brg->width_mm = width;
     sn65dsi83->brg->height_mm = height;
 
-
-#ifdef TOY_TEST
-    // port@1 : find the assocated panel
-    endpoint = of_graph_get_endpoint_by_regs(np, 1, -1);
-    if (!endpoint){
-        dev_info(dev, "%s cannot find endpoint 1 towards panel... find videomode\n",__func__);
-        
-        // when the video timing is given in DT
-        /* Read default timing if there is not device tree node for */
-        if ((of_get_videomode(np, &sn65dsi83->brg->vm, 0)) < 0)
-            videomode_from_timing(&panel_default_timing, &sn65dsi83->brg->vm);
-
-    }else
-        dev_dbg(dev,"%s pannel-side endpoint: %s\n",__func__,endpoint->full_name);
-
-        panel_node = of_graph_get_remote_port_parent(endpoint);
-        if (!panel_node) {
-            of_node_put(endpoint);
-            return -ENODEV;
-        }
-
-        sn65dsi83->panel = of_drm_find_panel(panel_node);
-        if(!sn65dsi83->panel){
-            dev_dbg(dev,"%s cannot find panel by panel node name = %s\n",__func__,panel_node->full_name);
-            return -EPROBE_DEFER;
-        }
-    }
-
-    of_node_put(endpoint);
-    of_node_put(panel_node);
-#else
-
-    // when the video timing is given in DT
-    /*
-        // <min typ max>
-        timing1: timing {
-            // 1920x1080p24 
-            clock-frequency = <148500000>;
-            hactive = <1920>;
-            vactive = <1080>;
-            hsync-len = <0 44 60>;
-            hfront-porch = <80 88 95>;
-            hback-porch = <100 148 160>;
-            vfront-porch = <0 4 6>;
-            vback-porch = <0 36 50>;
-            vsync-len = <0 5 6>;
-        };
-    */
-    /*
-    * Single "mode" entry. This describes one set of signal timings a display can
-    * have in one setting. This struct can later be converted to struct videomode
-    * (see include/video/videomode.h). As each timing_entry can be defined as a
-    * range, one struct display_timing may become multiple struct videomodes.
-    *
-    * Example: hsync active high, vsync active low
-    *
-    *				    Active Video
-    * Video  ______________________XXXXXXXXXXXXXXXXXXXXXX_____________________
-    *       |<- sync ->|<- back ->|<----- active  ----->|<- front ->|<- sync..
-    *       |          |  porch   |                     |   porch   |
-    *
-    * HSync _|¯¯¯¯¯¯¯¯¯¯|___________________________________________|¯¯¯¯¯¯¯¯¯
-    *
-    * VSync ¯|__________|¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|_________
-    */
-
     /* Read default timing if there is not device tree node for */
     if ((of_get_videomode(np, &sn65dsi83->brg->vm, 0)) < 0)
-        videomode_from_timing(&panel_default_timing, &sn65dsi83->brg->vm);      // get typical values
-
+        videomode_from_timing(&panel_default_timing, &sn65dsi83->brg->vm);
 
     of_node_put(endpoint);
     of_node_put(sn65dsi83->host_node);
-#endif
 
     return 0;
 }
@@ -540,7 +335,7 @@ static int sn65dsi83_attach_dsi(struct sn65dsi83 *sn65dsi83)
     struct mipi_dsi_host *host;
     struct mipi_dsi_device *dsi;
     int ret = 0;
-    const struct mipi_dsi_device_info info = { .type = "sn65dsi8x",
+    const struct mipi_dsi_device_info info = { .type = "sn65dsi83",
                            .channel = 0,
                            .node = NULL,
                          };
@@ -561,8 +356,6 @@ static int sn65dsi83_attach_dsi(struct sn65dsi83 *sn65dsi83)
 
     sn65dsi83->dsi = dsi;
 
-    // DSI configuration
-    // NOTE: we only support RGB888 format
     dsi->lanes = sn65dsi83->brg->num_dsi_lanes;
     dsi->format = MIPI_DSI_FMT_RGB888;
     dsi->mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST;
@@ -597,24 +390,24 @@ static int sn65dsi83_remove(struct i2c_client *i2c)
 }
 
 static const struct i2c_device_id sn65dsi83_i2c_ids[] = {
-    { "sn65dsi8x", 0 },
+    { "sn65dsi83", 0 },
     { }
 };
 MODULE_DEVICE_TABLE(i2c, sn65dsi83_i2c_ids);
 
 static const struct of_device_id sn65dsi83_of_ids[] = {
-    { .compatible = "ti,sn65dsi8x" },
+    { .compatible = "ti,sn65dsi83" },
     { }
 };
 MODULE_DEVICE_TABLE(of, sn65dsi83_of_ids);
 
 static struct mipi_dsi_driver sn65dsi83_dsi_driver = {
-    .driver.name = "sn65dsi8x",
+    .driver.name = "sn65dsi83",
 };
 
 static struct i2c_driver sn65dsi83_driver = {
     .driver = {
-        .name = "sn65dsi8x",
+        .name = "sn65dsi83",
         .of_match_table = sn65dsi83_of_ids,
     },
     .id_table = sn65dsi83_i2c_ids,

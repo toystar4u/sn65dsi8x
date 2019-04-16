@@ -12,6 +12,7 @@
  * GNU General Public License for more details.
  */
 
+//#define DEBUG
 #include <linux/i2c.h>
 #include <linux/device.h>
 #include <linux/gpio/consumer.h>
@@ -167,6 +168,11 @@ static int sn65dsi83_brg_start_stream(struct sn65dsi83_brg *brg)
     dev_dbg(&client->dev, "CHA (0x%02x) = 0x%02x",
          SN65DSI83_CHA_ERR, regval);
 
+    if(regval&0x01){
+        dev_info(&client->dev, "CHA (0x%02x) = 0x%02x : PLL unlocked",
+            SN65DSI83_CHA_ERR, regval);
+    }
+
     return 0;
 }
 
@@ -211,7 +217,7 @@ static int sn65dsi83_calk_div(int min_regval, int max_regval, int min_div,
         curr_delta = ABS(DIV_ROUND_UP(source_clk, div) - target_clk);
         if (curr_delta > prev_delta)
             return --regval;
-
+ 
         regval++;
         div += inc;
     }
@@ -240,29 +246,14 @@ static int sn65dsi83_brg_configure(struct sn65dsi83_brg *brg)
     struct videomode *vm = VM(brg);
 
 #ifdef TOY_MODIFICATION
-
-#ifdef TOY_TEST
-    struct drm_display_mode *mode;
-    u32 bytes_per_pixel = (24/(DSI_LANES(brg)))>>1;            // 3=24/(4*2) for DSI 24bpp and 4 lane
-
-    drm_display_mode_from_videomode(vm, mode);
-    u32 vrefresh =  drm_mode_vrefresh(mode);
-
-    // this equation is the same as (((PIXCLK * 24) / DSI_LANES(brg))>>1);
-    // since the PIXCLK = htotal * vtotal * vrefresh
-    u32 total_pixels_per_sec = mode->htotal * mode->vtotal * vrefresh;
-	u32 dsi_clk = total_pixels_per_sec * bytes_per_pixel;
-
-    dev_info(&client->dev, "htotal = %d, vtotal = %d, vrefresh = %d\n",mode->htotal, mode->vtotal, vrefresh);
+    // we'are only use the DSI 24bpp(RGB888)
+    u32 dsi_clk;
+    
+    if(brg->dsi_clock)
+        dsi_clk = brg->dsi_clock;
+    else
+        dsi_clk = (((PIXCLK * 24) / DSI_LANES(brg))>>1);
 #else
-
-    // DSI format RGB888 (24bpp), so bit clock = 24*PIXCLK/num_lanes for a lane
-    // in case of the dual line,  bit clock = 24*PIXCLK/num_lanes/2
-    u32 dsi_clk = (((PIXCLK * 24) / DSI_LANES(brg))>>1);
-#endif
-
-#else
-    // I think that this is worng for LVDS 18bpp because DSI bpp is 24 for RGB888 format 
     u32 dsi_clk = (((PIXCLK * BPP(brg)) / DSI_LANES(brg)) >> 1);
 #endif
 
@@ -391,8 +382,8 @@ static int sn65dsi83_brg_configure(struct sn65dsi83_brg *brg)
     SN65DSI83_WRITE(SN65DSI83_CHB_VERT_FRONTPORCH, 0x00);
 
 #ifdef TOY_MODIFICATION
-    // read and print all registers in debug mode
-    sn65dsi83_brg_read_all(brg);
+    // read and print all registers
+    // sn65dsi83_brg_read_all(brg);
 #endif
 
     return 0;

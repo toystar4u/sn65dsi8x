@@ -46,37 +46,35 @@ Display Timings for Hannstar HSD070pww1
 #if 1		
 				// vaild timing ==> OK !!
 				clock-frequency = <61500000>;
-                hactive = <1280>;
-                vactive = <800>;
-                hfront-porch = <1>;
-                hback-porch = <1>;
-                hsync-len = <58>;
-                vback-porch = <1>;
-                vfront-porch = <1>;
-                vsync-len = <1>;
-                hsync-active = <0>;
+				hactive = <1280>;
+				vactive = <800>;
+				hfront-porch = <1>;
+				hback-porch = <1>;
+				hsync-len = <58>;
+				vback-porch = <1>;
+				vfront-porch = <1>;
+				vsync-len = <1>;
+				hsync-active = <0>;
 				vsync-active = <0>;
 				de-active = <1>;
 				pixelclk-active = <0>;
 #else 
 				// vaild timing ==> OK!!!!
 				clock-frequency = <61500000>;
-                hactive = <1280>;
-                vactive = <800>;
-                hfront-porch = <10>;
-                hback-porch = <10>;
-                hsync-len = <661>;
-                vback-porch = <10>;
-                vfront-porch = <10>;
-                vsync-len = <203>;
-                hsync-active = <0>;
+				hactive = <1280>;
+				vactive = <800>;
+				hfront-porch = <10>;
+				hback-porch = <10>;
+				hsync-len = <661>;
+				vback-porch = <10>;
+				vfront-porch = <10>;
+				vsync-len = <203>;
+				hsync-active = <0>;
 				vsync-active = <0>;
 				de-active = <1>;
 				pixelclk-active = <0>;
 #endif
-				//interlaced;          	// enable interlaced mode
-				//doublescan; 			// enable doublescan mode
- 				//doubleclk; 			// enable doubleclock mode
+
 			};
 
 		};

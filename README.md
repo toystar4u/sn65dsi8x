@@ -15,6 +15,7 @@ Display Timings for Hannstar HSD070pww1
 - imx8mq SoC : DCSS with MIPI-DSI 
 
 ```
+
 &i2c1 {
 	
 	dsi85:dsi85@2d {
@@ -31,7 +32,8 @@ Display Timings for Hannstar HSD070pww1
 		ti,lvds-format = <1>;		
 		ti,width-mm = <151>;
 		ti,height-mm = <94>;
-		ti,test-mode = <0>;       	// enable test mode
+		ti,test-mode = <0>;       			// enable test mode
+		//ti,dsi-clock = <180000000>		// if not set, automatically compute it
 
 		enable-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
@@ -40,20 +42,41 @@ Display Timings for Hannstar HSD070pww1
 	
 		display-timings {
 			native-mode = <&lvds_timing0>;
-			lvds_timing0:hsd070pww1 {	
-			clock-frequency = <8500000>;  // 82MHz in product mannual
-			hactive = <1280>;
-			vactive = <800>;
-			hfront-porch = <10>;
-			hback-porch = <10>;
-			hsync-len = <661>;
-			vback-porch = <10>;
-			vfront-porch = <10>;
-			vsync-len = <203>;
-			hsync-active = <0>;
-			vsync-active = <0>;
-			de-active = <1>;
-			pixelclk-active = <0>;
+			lvds_timing0:hsd070pww1 {
+#if 1		
+				// vaild timing ==> OK !!
+				clock-frequency = <61500000>;
+                hactive = <1280>;
+                vactive = <800>;
+                hfront-porch = <1>;
+                hback-porch = <1>;
+                hsync-len = <58>;
+                vback-porch = <1>;
+                vfront-porch = <1>;
+                vsync-len = <1>;
+                hsync-active = <0>;
+				vsync-active = <0>;
+				de-active = <1>;
+				pixelclk-active = <0>;
+#else 
+				// vaild timing ==> OK!!!!
+				clock-frequency = <61500000>;
+                hactive = <1280>;
+                vactive = <800>;
+                hfront-porch = <10>;
+                hback-porch = <10>;
+                hsync-len = <661>;
+                vback-porch = <10>;
+                vfront-porch = <10>;
+                vsync-len = <203>;
+                hsync-active = <0>;
+				vsync-active = <0>;
+				de-active = <1>;
+				pixelclk-active = <0>;
+#endif
+				//interlaced;          	// enable interlaced mode
+				//doublescan; 			// enable doublescan mode
+ 				//doubleclk; 			// enable doubleclock mode
 			};
 
 		};

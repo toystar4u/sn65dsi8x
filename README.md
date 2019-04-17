@@ -33,7 +33,8 @@ Display Timings for Hannstar HSD070pww1
 		ti,width-mm = <151>;
 		ti,height-mm = <94>;
 		ti,test-mode = <0>;       			// enable test mode
-		//ti,dsi-clock = <180000000>		// if not set, automatically compute it
+		// manually set DSI clock
+		//ti,dsi-clock = <180000000>;		// if not set, automatically compute it
 
 		enable-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";

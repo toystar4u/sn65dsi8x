@@ -32,7 +32,7 @@ Display Timings for Hannstar HSD070pww1
 		ti,lvds-format = <1>;		
 		ti,width-mm = <151>;
 		ti,height-mm = <94>;
-		ti,test-mode = <0>;       			// enable test mode
+		ti,test-mode = <0>;       			// enable or disable test mode
 		// manually set DSI clock
 		//ti,dsi-clock = <180000000>;		// if not set, automatically compute it
 
